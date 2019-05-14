@@ -26,6 +26,6 @@ public:
 	void setBufferToDraw(AudioSampleBuffer* bufferToDraw);
 
 private:
-	AudioSampleBuffer* drawBuffer;
+	AudioSampleBuffer* drawBuffer = nullptr;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DrawBufferComponent)
 };

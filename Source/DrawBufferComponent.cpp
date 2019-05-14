@@ -42,25 +42,25 @@ void DrawBufferComponent::paint (Graphics& g)
 
     g.setColour (Colours::white);
 
-	float prevSample = 0.0f;
-	float scaleX = getWidth() / drawBuffer->getNumSamples();
-	float scaleY = getHeight() / 4;
-
-	const float* samples = drawBuffer->getReadPointer(0);
-
-
-	Path path;
-	path.startNewSubPath(0, getHeight() / 2.0f);
-
-	for (int i = 1; i < drawBuffer->getNumSamples(); i++)
+	if (drawBuffer != nullptr)
 	{
-		DBG(String(getHeight()) + " " + String(getWidth()));
-		DBG(String(i*scaleX) + " " + String(getHeight() / 2.0f - samples[i] * scaleY));
-		path.lineTo(i*scaleX, getHeight()/2.0f - samples[i] * scaleY);
+		float prevSample = 0.0f;
+		float scaleX = getWidth() / drawBuffer->getNumSamples();
+		float scaleY = getHeight() / 4;
 
+		const float* samples = drawBuffer->getReadPointer(0);
+
+
+		Path path;
+		path.startNewSubPath(0, getHeight() / 2.0f);
+
+		for (int i = 1; i < drawBuffer->getNumSamples(); i++)
+		{
+			path.lineTo(i*scaleX, getHeight() / 2.0f - samples[i] * scaleY);
+		}
+
+		g.strokePath(path, PathStrokeType(1.3f));
 	}
-
-	g.strokePath(path, PathStrokeType(1.3f));
 
 }
 

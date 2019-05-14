@@ -61,7 +61,7 @@ public:
     void getNextAudioBlock (const AudioSourceChannelInfo& bufferToFill) override;
     void releaseResources() override;
 
-	void createWavetable (MainComponent::waveTableShape shape);
+	void createWavetable (MainComponent::waveTableShape shape, juce::String componentId);
 	float getWaveTableSample(MainComponent::waveTableShape shape, float angle);
 	void MainComponent::InitialiseOscillators();
 
@@ -72,22 +72,20 @@ public:
 	
 	void comboBoxChanged(ComboBox* comboBox) override
 	{
-		if (comboBox == &waveTableComboBox)
+		if (comboBox == &waveTableComboBox1 || comboBox == &waveTableComboBox2)
 		{
-			DBG("Selected ID: " + static_cast<waveTableShape>(comboBox->getSelectedId() - 1));
-			DBG("Corresponding string: " + waveTableShapeStrings[static_cast<waveTableShape>(comboBox->getSelectedId() - 1)]);
-			createWavetable(static_cast<waveTableShape>(comboBox->getSelectedId()-1));
+			createWavetable(static_cast<waveTableShape>(comboBox->getSelectedId()-1),
+							comboBox->getComponentID());
 			InitialiseOscillators();
 			repaint();
-
 		}
 	}
 
 private:
     //==============================================================================
     // Your private member variables go here...
-	Label waveTableShapeLabel;
-	ComboBox waveTableComboBox;
+	Label waveTableShapeLabel1, waveTableShapeLabel2;
+	ComboBox waveTableComboBox1, waveTableComboBox2;
 	double globalSampleRate;
 	
 
@@ -95,10 +93,15 @@ private:
 	const unsigned int tableSize = 1 << 7;
 	float level = 0.0f;
 
-	AudioSampleBuffer waveTable;
-	OwnedArray<WavetableOscillator> oscillators;
+	AudioSampleBuffer finalBuffer;
+	AudioSampleBuffer waveTable1, waveTable2;
+	OwnedArray<WavetableOscillator> oscillators1;
+	OwnedArray<WavetableOscillator> oscillators2;
+
+	bool initialised1 = false, initialised2 = false;
+
 	
-	DrawBufferComponent drawBufferComponent;
+	DrawBufferComponent drawBufferCombined, drawBuffer1, drawBuffer2;
 	Rectangle<int> shapeArea;
 
 
