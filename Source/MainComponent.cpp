@@ -254,3 +254,15 @@ void MainComponent::resized()
 	drawBufferCombined.setBounds(shapeArea);
 
 }
+
+void MainComponent::comboBoxChanged(ComboBox* comboBox)
+{
+	if (comboBox == &waveTableComboBox1 || comboBox == &waveTableComboBox2)
+	{
+		createWavetable(static_cast<waveTableShape>(comboBox->getSelectedId() - 1),
+			comboBox->getComponentID());
+
+		InitialiseOscillators();
+		repaint();
+	}
+}

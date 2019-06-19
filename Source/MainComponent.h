@@ -70,16 +70,7 @@ public:
 
     void resized() override;
 	
-	void comboBoxChanged(ComboBox* comboBox) override
-	{
-		if (comboBox == &waveTableComboBox1 || comboBox == &waveTableComboBox2)
-		{
-			createWavetable(static_cast<waveTableShape>(comboBox->getSelectedId()-1),
-							comboBox->getComponentID());
-			InitialiseOscillators();
-			repaint();
-		}
-	}
+	void comboBoxChanged(ComboBox* comboBox) override;
 
 private:
     //==============================================================================
