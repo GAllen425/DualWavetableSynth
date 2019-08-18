@@ -8,33 +8,57 @@
 
 #include "MainComponent.h"
 
-void WavetableOscillator::setFrequency(float frequency, float sampleRate)
+//==============================================================================
+MainComponent::MainComponent() : juce::AudioAppComponent(otherDeviceManager)
 {
-	auto tableSizeOverSampleRate = tableSize / sampleRate;
-	tableDelta = frequency * tableSizeOverSampleRate;
+	this->setUsingNativeTitleBar(true);
+	otherDeviceManager.initialise(2, 2, nullptr, true);
+	audioSettingsComp.reset(new AudioDeviceSelectorComponent(otherDeviceManager,0,2,0,2,true,true,true,true));
+	addAndMakeVisible(audioSettingsComp.get());
+
+	createWavetable(MainComponent::waveTableShape::NONE,
+					"comboBox1");
+	createWavetable(MainComponent::waveTableShape::NONE,
+					"comboBox2");
+
+	addAndMakeVisible(blendKnob);
+	blendKnob.setRange(-0.99, 0.99);
+	blendKnob.setSliderStyle(Slider::SliderStyle::RotaryVerticalDrag);
+	blendKnob.setNumDecimalPlacesToDisplay(2);
+	blendKnob.addListener(this);
+	blendKnob.setTextBoxStyle(Slider::TextBoxBelow, false, 120, blendKnob.getTextBoxHeight());
+
+	addAndMakeVisible(waveTableComboBox1);
+	waveTableComboBox1.addItemList(waveTableShapeStrings, 1);
+	waveTableComboBox1.setComponentID("comboBox1");
+	waveTableComboBox1.addListener(this);
+
+	addAndMakeVisible(waveTableComboBox2);
+	waveTableComboBox2.addItemList(waveTableShapeStrings, 1);
+	waveTableComboBox2.setComponentID("comboBox2");
+	waveTableComboBox2.addListener(this);
+
+	drawBuffer1.setBufferToDraw(&waveTable1);
+	addAndMakeVisible(drawBuffer1);
+	drawBuffer2.setBufferToDraw(&waveTable2);
+	addAndMakeVisible(drawBuffer2);
+
+	drawBufferCombined.setBufferToDraw(&finalBuffer);
+	addAndMakeVisible(drawBufferCombined);
+
+	setSize(800, 600);
+	setAudioChannels(0, 2);
 }
 
-forcedinline float WavetableOscillator::getNextSample() noexcept
+MainComponent::~MainComponent()
 {
-	auto index0 = (unsigned int)currentIndex;
-	auto index1 = index0  + 1;
-
-	auto frac = currentIndex - (float)index0;
-
-	auto* table = wavetableOscBuffer.getReadPointer(0);
-	auto value0 = table[index0];
-	auto value1 = table[index1];
-
-	auto currentSample = value0 + frac * (value1 - value0);
-
-	if ((currentIndex += tableDelta) > tableSize)
-		currentIndex -= tableSize;
-
-	return currentSample;
+    // This shuts down the audio device and clears the audio source.
+    shutdownAudio();
 }
 
-void MainComponent::createWavetable (MainComponent::waveTableShape shape,
-									 juce::String componentId)
+//==============================================================================
+void MainComponent::createWavetable(MainComponent::waveTableShape shape,
+	juce::String componentId)
 {
 	AudioSampleBuffer* waveTablePtr;
 
@@ -82,19 +106,19 @@ void MainComponent::createWavetable (MainComponent::waveTableShape shape,
 	{
 		const float* samples1 = waveTable1.getReadPointer(0);
 		const float* samples2 = waveTable2.getReadPointer(0);
-		
+
 		finalBuffer.setSize(1, tableSize + 1);
 		finalBuffer.clear();
 		auto* samplesCombined = finalBuffer.getWritePointer(0);
 
 		for (auto i = 0; i < tableSize; ++i)
 		{
-			samplesCombined[i] = (samples1[i] + samples2[i]) / 2.0f;
+			samplesCombined[i] = (fabs(blend - 1.0f)*samples1[i] + fabs(blend + 1.0f)*samples2[i]) / 2.0f;
 		}
 	}
 }
 
-float MainComponent::getWaveTableSample (MainComponent::waveTableShape shape, float angle)
+float MainComponent::getWaveTableSample(MainComponent::waveTableShape shape, float angle)
 {
 	float sample = 0.0f;
 
@@ -120,51 +144,13 @@ float MainComponent::getWaveTableSample (MainComponent::waveTableShape shape, fl
 		break;
 	}
 	case SAW:
-		sample = (-2.0f / MathConstants<float>::pi) * std::atan(1.0f / std::tan(angle/2.0f - MathConstants<float>::pi / 2.0f));
+		sample = (-2.0f / MathConstants<float>::pi) * std::atan(1.0f / std::tan(angle / 2.0f - MathConstants<float>::pi / 2.0f));
 		break;
 	default:
 		sample = 0.0f;
 	}
 	return sample;
 }
-
-//==============================================================================
-MainComponent::MainComponent()
-{
-	createWavetable(MainComponent::waveTableShape::NONE,
-					"comboBox1");
-	createWavetable(MainComponent::waveTableShape::NONE,
-					"comboBox2");
-
-	addAndMakeVisible(waveTableComboBox1);
-	waveTableComboBox1.addItemList(waveTableShapeStrings, 1);
-	waveTableComboBox1.setComponentID("comboBox1");
-	waveTableComboBox1.addListener(this);
-
-	addAndMakeVisible(waveTableComboBox2);
-	waveTableComboBox2.addItemList(waveTableShapeStrings, 1);
-	waveTableComboBox2.setComponentID("comboBox2");
-	waveTableComboBox2.addListener(this);
-
-	drawBuffer1.setBufferToDraw(&waveTable1);
-	addAndMakeVisible(drawBuffer1);
-	drawBuffer2.setBufferToDraw(&waveTable2);
-	addAndMakeVisible(drawBuffer2);
-
-	drawBufferCombined.setBufferToDraw(&finalBuffer);
-	addAndMakeVisible(drawBufferCombined);
-
-	setSize(800, 600);
-	setAudioChannels(0, 2);
-}
-
-MainComponent::~MainComponent()
-{
-    // This shuts down the audio device and clears the audio source.
-    shutdownAudio();
-}
-
-//==============================================================================
 void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRate)
 {
 	globalSampleRate = sampleRate;
@@ -185,14 +171,14 @@ void MainComponent::InitialiseOscillators()
 		if (initialised1)
 		{
 
-			auto* oscillator1 = new WavetableOscillator(waveTable1);
+			WavetableOscillator* oscillator1 = new WavetableOscillator(waveTable1);
 			oscillator1->setFrequency((float)frequency, globalSampleRate);
 			oscillators1.add(oscillator1);
 		}
 
 		if (initialised2)
 		{
-			auto* oscillator2 = new WavetableOscillator(waveTable2);
+			WavetableOscillator* oscillator2 = new WavetableOscillator(waveTable2);
 			oscillator2->setFrequency((float)frequency, globalSampleRate);
 			oscillators2.add(oscillator2);
 
@@ -241,11 +227,15 @@ void MainComponent::resized()
 {
 	const int border = 10;
 	Rectangle<int> area = getLocalBounds();
-	Rectangle<int> dropdownArea = area.removeFromTop(area.getHeight() / 2);
-	Rectangle<int> leftDropDownArea = dropdownArea.removeFromRight(dropdownArea.getWidth() / 2);
+	Rectangle<int> dropdownArea = area.removeFromTop(area.getHeight() / 2.0f);
+	Rectangle<int> leftDropDownArea = dropdownArea.removeFromLeft(1.0f/3.0f * dropdownArea.getWidth());
+	Rectangle<int> blendArea = dropdownArea.removeFromLeft(dropdownArea.getWidth() / 2.0f);
 
 	waveTableComboBox1.setBounds(leftDropDownArea.removeFromTop(leftDropDownArea.getHeight() * 1 / 4).reduced(10));
 	drawBuffer1.setBounds(leftDropDownArea);
+
+	blendKnobLabel.setBounds(blendArea.removeFromTop(blendArea.getHeight() * 1 / 4).reduced(10));
+	blendKnob.setBounds(blendArea);
 
 	waveTableComboBox2.setBounds(dropdownArea.removeFromTop(dropdownArea.getHeight() * 1 / 4).reduced(10));
 	drawBuffer2.setBounds(dropdownArea);
@@ -259,8 +249,29 @@ void MainComponent::comboBoxChanged(ComboBox* comboBox)
 {
 	if (comboBox == &waveTableComboBox1 || comboBox == &waveTableComboBox2)
 	{
+		//DBG("waveshape : " + static_cast<waveTableShape>(comboBox->getSelectedId() - 1));
+		//DBG("box : " + comboBox->getName());
 		createWavetable(static_cast<waveTableShape>(comboBox->getSelectedId() - 1),
 			comboBox->getComponentID());
+
+		InitialiseOscillators();
+		repaint();
+	}
+}
+
+void MainComponent::sliderValueChanged(Slider* slider)
+{
+	if (slider == &blendKnob)
+	{
+		blend = blendKnob.getValue();
+		auto* drawSamplesCombined = finalBuffer.getWritePointer(0);		
+		const float* samples1 = waveTable1.getReadPointer(0);
+		const float* samples2 = waveTable2.getReadPointer(0);
+		for (auto i = 0; i < tableSize; ++i)
+		{
+			drawSamplesCombined[i] = (fabs(blend - 1.0f)*samples1[i] + fabs(blend + 1.0f)*samples2[i]) / 2.0f;
+		
+		}
 
 		InitialiseOscillators();
 		repaint();

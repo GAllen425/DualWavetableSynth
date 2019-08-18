@@ -10,6 +10,7 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "DrawBufferComponent.h"
+#include "WaveTableOscillator.h"
 
 //==============================================================================
 /*
@@ -17,29 +18,9 @@
     your controls and content.
 */
 
-class WavetableOscillator
-{
-public:
-	WavetableOscillator(const AudioSampleBuffer& wavetableToUse)
-		: wavetableOscBuffer(wavetableToUse),
-		  tableSize (wavetableOscBuffer.getNumSamples() - 1)
-	{
-		jassert(wavetableOscBuffer.getNumChannels() == 1);
-	}
-
-	void setFrequency(float frequency, float sampleRate);
-	forcedinline float getNextSample() noexcept;
-
-
-
-private:
-	const AudioSampleBuffer& wavetableOscBuffer;
-	const int tableSize;
-	float currentIndex = 0.0, tableDelta = 0.0f;
-};
-
 class MainComponent   : public AudioAppComponent,
-						public ComboBox::Listener
+						public ComboBox::Listener,
+						public Slider::Listener
 {
 public:
     //==============================================================================
@@ -71,12 +52,16 @@ public:
     void resized() override;
 	
 	void comboBoxChanged(ComboBox* comboBox) override;
-
+	void sliderValueChanged(Slider* slider) override;
 private:
     //==============================================================================
     // Your private member variables go here...
 	Label waveTableShapeLabel1, waveTableShapeLabel2;
 	ComboBox waveTableComboBox1, waveTableComboBox2;
+
+	Slider blendKnob;
+	Label blendKnobLabel;
+
 	double globalSampleRate;
 	
 
@@ -93,9 +78,11 @@ private:
 
 	
 	DrawBufferComponent drawBufferCombined, drawBuffer1, drawBuffer2;
+	AudioDeviceManager otherDeviceManager;
+	std::unique_ptr<AudioDeviceSelectorComponent> audioSettingsComp;
 	Rectangle<int> shapeArea;
 
-
+	float blend = 0;
 
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)

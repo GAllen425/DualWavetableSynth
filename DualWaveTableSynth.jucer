@@ -3,6 +3,10 @@
 <JUCERPROJECT id="f0nEBV" name="WaveTableSynth" projectType="guiapp" jucerVersion="5.4.3">
   <MAINGROUP id="MrViY4" name="WaveTableSynth">
     <GROUP id="{104F12A1-0A79-C2C2-3554-B079712F6311}" name="Source">
+      <FILE id="iIsdZB" name="WaveTableOscillator.cpp" compile="1" resource="0"
+            file="Source/WaveTableOscillator.cpp"/>
+      <FILE id="sAP1fp" name="WaveTableOscillator.h" compile="0" resource="0"
+            file="Source/WaveTableOscillator.h"/>
       <FILE id="PMV32R" name="DrawBufferComponent.cpp" compile="1" resource="0"
             file="Source/DrawBufferComponent.cpp"/>
       <FILE id="zvfEzc" name="DrawBufferComponent.h" compile="0" resource="0"
