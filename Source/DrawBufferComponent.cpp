@@ -56,7 +56,7 @@ void DrawBufferComponent::paint (Graphics& g)
 
 		for (int i = 1; i < drawBuffer->getNumSamples(); i++)
 		{
-			path.lineTo(i*scaleX, getHeight() / 2.0f - samples[i] * scaleY);
+			path.lineTo(i * scaleX, getHeight() / 2.0f - samples[i] * scaleY);
 		}
 
 		g.strokePath(path, PathStrokeType(1.3f));

@@ -10,6 +10,7 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "DrawBufferComponent.h"
+#include "SecondOrderLpfHpf.h"
 
 //==============================================================================
 /*
@@ -92,9 +93,10 @@ private:
 	bool initialised1 = false, initialised2 = false;
 
 	
-	DrawBufferComponent drawBufferCombined, drawBuffer1, drawBuffer2;
+	DrawBufferComponent drawBuffer1, drawBuffer2;
 	Rectangle<int> shapeArea;
 
+	std::unique_ptr<SecondOrderLpfHpf> filterObject;
 
 
 

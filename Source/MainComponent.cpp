@@ -136,6 +136,20 @@ MainComponent::MainComponent()
 	createWavetable(MainComponent::waveTableShape::NONE,
 					"comboBox2");
 
+	const int border = 10;
+	Rectangle<int> area = getLocalBounds();
+	Rectangle<int> dropdownArea = area.removeFromTop(area.getHeight() / 2);
+	Rectangle<int> leftDropDownArea = dropdownArea.removeFromRight(dropdownArea.getWidth() / 2);
+
+	waveTableComboBox1.setBounds(leftDropDownArea.removeFromTop(leftDropDownArea.getHeight() * 1 / 4).reduced(10));
+	drawBuffer1.setBounds(leftDropDownArea);
+	waveTableComboBox2.setBounds(dropdownArea.removeFromTop(dropdownArea.getHeight() * 1 / 4).reduced(10));
+	drawBuffer2.setBounds(dropdownArea);
+
+	filterObject = std::make_unique<SecondOrderLpfHpf>();
+	filterObject->setBounds(area.reduced(10));
+	filterObject->startTimer(20);
+
 	addAndMakeVisible(waveTableComboBox1);
 	waveTableComboBox1.addItemList(waveTableShapeStrings, 1);
 	waveTableComboBox1.setComponentID("comboBox1");
@@ -151,8 +165,7 @@ MainComponent::MainComponent()
 	drawBuffer2.setBufferToDraw(&waveTable2);
 	addAndMakeVisible(drawBuffer2);
 
-	drawBufferCombined.setBufferToDraw(&finalBuffer);
-	addAndMakeVisible(drawBufferCombined);
+	addAndMakeVisible(*filterObject);
 
 	setSize(800, 600);
 	setAudioChannels(0, 2);
@@ -168,6 +181,7 @@ MainComponent::~MainComponent()
 void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRate)
 {
 	globalSampleRate = sampleRate;
+	filterObject->setSampleRate(globalSampleRate);
 	InitialiseOscillators();
 }
 
@@ -220,8 +234,8 @@ void MainComponent::getNextAudioBlock (const AudioSourceChannelInfo& bufferToFil
 			auto levelSample1 = oscillator1->getNextSample() * level;
 			auto levelSample2 = oscillator2->getNextSample() * level;
 
-			leftBuffer[sample] += (levelSample1 + levelSample2);
-			rightBuffer[sample] += (levelSample1 + levelSample2);
+			leftBuffer[sample] += filterObject->calculateOutput(levelSample1 + levelSample2);
+			rightBuffer[sample] += filterObject->calculateOutput(levelSample1 + levelSample2);
 		}
 	}
 }
@@ -251,7 +265,8 @@ void MainComponent::resized()
 	drawBuffer2.setBounds(dropdownArea);
 
 	shapeArea = area.reduced(10);
-	drawBufferCombined.setBounds(shapeArea);
+	filterObject->setBounds(shapeArea);
+	
 
 }
 
